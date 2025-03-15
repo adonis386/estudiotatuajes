@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Navigate } from 'react-router-dom'
-import { isAuthenticated } from '../utils/tempAuth'
+import { useAuth } from '../hooks/useAuth'
 import { TattooCategory, TattooImage, addImage, getImages, deleteImage, updateImage } from '../utils/tempImages'
 
 const Admin = () => {
+  const { user } = useAuth()
   const [images, setImages] = useState<TattooImage[]>([])
   const [imageUpload, setImageUpload] = useState<{
     file: File | null
@@ -25,7 +26,7 @@ const Admin = () => {
   }, [])
 
   // Redirect if not authenticated
-  if (!isAuthenticated()) {
+  if (!user) {
     return <Navigate to="/login" replace />
   }
 

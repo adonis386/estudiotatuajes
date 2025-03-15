@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
 const Login = () => {
@@ -12,7 +12,8 @@ const Login = () => {
 
   // Si el usuario ya está autenticado, redirigir al panel de admin
   if (user) {
-    return <Navigate to="/admin" replace />
+    navigate('/admin')
+    return null
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -31,24 +32,13 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center py-20">
-      <picture className="absolute inset-0 -z-10">
-        <source srcSet={bannerWebp} type="image/webp" />
-        <img 
-          src={bannerJpg} 
-          alt="Background" 
-          className="w-full h-full object-cover"
-          loading="lazy"
-        />
-        <div className="absolute inset-0 bg-black/85" />
-      </picture>
+    <div className="min-h-screen bg-black py-20">
+      <div className="container mx-auto px-4">
+        <h1 className="text-5xl md:text-6xl text-center mb-12 font-birthstone text-[#C4A962]">
+          Iniciar Sesión
+        </h1>
 
-      <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-md mx-auto">
-          <h1 className="text-5xl md:text-6xl text-center mb-12 font-birthstone text-[#C4A962]">
-            Administrador
-          </h1>
-          
           <form 
             onSubmit={handleSubmit}
             className="bg-black/50 p-8 rounded-lg backdrop-blur-md border border-[#C4A962]/20"
@@ -59,12 +49,6 @@ const Login = () => {
               </div>
             )}
 
-            <div className="mb-6 text-center text-[#C4A962]/80 source-sans-3-regular text-sm">
-              <p>Usuario temporal para pruebas:</p>
-              <p>Email: admin@denis.com</p>
-              <p>Contraseña: admin123</p>
-            </div>
-            
             <div className="mb-6">
               <label 
                 htmlFor="email"
@@ -83,7 +67,7 @@ const Login = () => {
               />
             </div>
 
-            <div className="mb-8">
+            <div className="mb-6">
               <label 
                 htmlFor="password"
                 className="block source-sans-3-medium text-[#C4A962] mb-2"

@@ -7,14 +7,20 @@ import {
 } from 'firebase/auth'
 import { auth } from '../config/firebase'
 
-export const useAuth = () => {
+export const useAuth = (): {
+  user: User | null;
+  loading: boolean;
+  error: string | null;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<boolean>;
+} => {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user)
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser)
       setLoading(false)
     })
 

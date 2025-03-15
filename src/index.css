@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+h1 {
+  font-family: "Birthstone", cursive;
+  font-weight: 400;
+  font-style: normal;
+}
+
+/* Source Sans 3 - Light */
+.source-sans-3-light {
+  font-family: "Source Sans 3", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 300;
+  font-style: normal;
+}
+
+/* Source Sans 3 - Regular */
+.source-sans-3-regular {
+  font-family: "Source Sans 3", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+}
+
+/* Source Sans 3 - Medium */
+.source-sans-3-medium {
+  font-family: "Source Sans 3", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 500;
+  font-style: normal;
+}
+
+/* Source Sans 3 - Bold */
+.source-sans-3-bold {
+  font-family: "Source Sans 3", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 700;
+  font-style: normal;
+}

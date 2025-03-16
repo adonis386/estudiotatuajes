@@ -1,317 +1,220 @@
-import { useState, useEffect } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
-import { useNavigationGuard } from '../hooks/useNavigationGuard'
-import { TattooCategory, TattooImage, addImage, getImages, deleteImage, updateImage } from '../utils/tempImages'
+import React, { useState } from 'react'
+import { signOut } from 'firebase/auth'
+import { auth } from '../firebase'
+import { motion } from 'framer-motion'
+import { useTattoos } from '../hooks/useTattoos'
+import type { TattooCategory } from '../types/tattoo'
 
-const Admin = () => {
-  const navigate = useNavigate()
-  const guardedNavigate = useNavigationGuard(navigate)
-  const { user, logout } = useAuth()
-  const [images, setImages] = useState<TattooImage[]>([])
-  const [imageUpload, setImageUpload] = useState<{
-    file: File | null
-    preview: string
-    category: TattooCategory
-  }>({
-    file: null,
-    preview: '',
-    category: 'realismo'
-  })
-  const [editingImage, setEditingImage] = useState<TattooImage | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
+const Admin: React.FC = () => {
+  const { tattoos, loading, error, uploadTattoo, deleteTattoo } = useTattoos()
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [category, setCategory] = useState<TattooCategory>('realismo')
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
 
-  useEffect(() => {
-    // Load images on mount
-    setImages(getImages())
-  }, [])
-
-  // Redirect if not authenticated
-  if (!user) {
-    return <Navigate to="/login" replace />
-  }
+  const categories = [
+    { id: 'realismo' as TattooCategory, label: 'Realismo' },
+    { id: 'asiatico' as TattooCategory, label: 'Asiático' },
+    { id: 'color' as TattooCategory, label: 'Color' }
+  ]
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      // Preview image
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setImageUpload(prev => ({
-          ...prev,
-          file,
-          preview: reader.result as string
-        }))
-      }
-      reader.readAsDataURL(file)
-      setError(null)
-      setSuccess(null)
+    if (e.target.files?.[0]) {
+      setSelectedFile(e.target.files[0])
     }
-  }
-
-  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setImageUpload(prev => ({
-      ...prev,
-      category: e.target.value as TattooCategory
-    }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!imageUpload.file) {
-      setError('Por favor, selecciona una imagen')
+    if (!selectedFile || !title) {
+      setUploadError('Por favor selecciona una imagen y agrega un título')
       return
     }
 
-    setIsLoading(true)
-    setError(null)
-    setSuccess(null)
-
     try {
-      // Simulate upload delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Add image to temporary storage
-      const newImage = addImage(imageUpload.preview, imageUpload.category)
-      setImages(prev => [newImage, ...prev])
-      setSuccess('Imagen subida exitosamente')
+      setUploading(true)
+      setUploadError(null)
+      await uploadTattoo(selectedFile, category, title, description)
       
       // Reset form
-      setImageUpload({
-        file: null,
-        preview: '',
-        category: 'realismo'
-      })
-    } catch (err) {
-      setError('Error al subir la imagen. Por favor, intenta de nuevo.')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleDelete = async (id: string) => {
-    try {
-      // Simulate delay
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      deleteImage(id)
-      setImages(prev => prev.filter(img => img.id !== id))
-      setSuccess('Imagen eliminada exitosamente')
-    } catch (err) {
-      setError('Error al eliminar la imagen')
-    }
-  }
-
-  const handleEdit = (image: TattooImage) => {
-    setEditingImage(image)
-  }
-
-  const handleUpdate = async (id: string, category: TattooCategory) => {
-    try {
-      const updated = updateImage(id, category)
-      if (updated) {
-        setImages(prev => prev.map(img => img.id === id ? updated : img))
-        setSuccess('Imagen actualizada exitosamente')
+      setSelectedFile(null)
+      setTitle('')
+      setDescription('')
+      setCategory('realismo')
+      if (e.target instanceof HTMLFormElement) {
+        e.target.reset()
       }
-      setEditingImage(null)
     } catch (err) {
-      setError('Error al actualizar la imagen')
+      setUploadError('Error al subir el tatuaje. Por favor intenta de nuevo.')
+    } finally {
+      setUploading(false)
     }
   }
 
   const handleLogout = async () => {
-    const success = await logout()
-    if (success) {
-      guardedNavigate('/login')
+    try {
+      await signOut(auth)
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error)
     }
   }
 
   return (
-    <div className="min-h-screen bg-black py-20">
+    <div className="min-h-screen bg-black py-12">
       <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center mb-12">
-          <h1 className="text-5xl md:text-6xl font-birthstone text-[#C4A962]">
-            Panel de Administración
-          </h1>
-          <button
-            onClick={handleLogout}
-            className="py-2 px-4 rounded source-sans-3-medium text-white bg-red-600 hover:bg-red-700 transition-colors flex items-center gap-2"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M3 3a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h5.5a1 1 0 1 0 0-2H4V5h4.5a1 1 0 0 0 0-2H3zm12.293 2.293a1 1 0 0 1 1.414 0l3 3a1 1 0 0 1 0 1.414l-3 3a1 1 0 0 1-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 0 1 0-1.414z" clipRule="evenodd"/>
-            </svg>
-            Cerrar Sesión
-          </button>
-        </div>
-
         <div className="max-w-4xl mx-auto">
-          {/* Upload Form */}
-          <form 
-            onSubmit={handleSubmit}
-            className="bg-black/50 p-8 rounded-lg backdrop-blur-md border border-[#C4A962]/20 mb-8"
+          <div className="flex justify-between items-center mb-12">
+            <h1 className="text-5xl font-birthstone text-[#C4A962]">
+              Panel de Administración
+            </h1>
+            <button
+              onClick={handleLogout}
+              className="px-6 py-2 rounded bg-red-600 hover:bg-red-700 text-white source-sans-3-medium transition-colors"
+            >
+              Cerrar Sesión
+            </button>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-black/50 border border-[#C4A962]/20 rounded-lg p-8 mb-12"
           >
-            <h2 className="text-2xl mb-6 source-sans-3-medium text-[#C4A962]">
-              Subir Nueva Imagen
+            <h2 className="text-3xl font-birthstone text-[#C4A962] mb-8">
+              Subir Nuevo Tatuaje
             </h2>
 
-            {error && (
-              <div className="mb-6 p-4 rounded bg-red-500/10 border border-red-500/20 text-red-400 source-sans-3-regular text-sm">
-                {error}
-              </div>
-            )}
-            
-            {success && (
-              <div className="mb-6 p-4 rounded bg-green-500/10 border border-green-500/20 text-green-400 source-sans-3-regular text-sm">
-                {success}
-              </div>
-            )}
-
-            <div className="grid md:grid-cols-2 gap-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <div className="mb-6">
-                  <label 
-                    htmlFor="category"
-                    className="block source-sans-3-medium text-[#C4A962] mb-2"
-                  >
-                    Categoría
-                  </label>
-                  <select
-                    id="category"
-                    value={imageUpload.category}
-                    onChange={handleCategoryChange}
-                    disabled={isLoading}
-                    className="w-full p-3 rounded bg-black/50 text-white source-sans-3-regular border border-[#C4A962]/50 focus:border-[#C4A962] focus:outline-none transition-colors disabled:opacity-50"
-                  >
-                    <option value="realismo">Realismo</option>
-                    <option value="asiatico">Asiático</option>
-                    <option value="color">Color</option>
-                  </select>
-                </div>
-
-                <div className="mb-6">
-                  <label 
-                    htmlFor="image"
-                    className="block source-sans-3-medium text-[#C4A962] mb-2"
-                  >
-                    Imagen
-                  </label>
-                  <input
-                    type="file"
-                    id="image"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    disabled={isLoading}
-                    className="w-full p-3 rounded bg-black/50 text-white source-sans-3-regular border border-[#C4A962]/50 focus:border-[#C4A962] focus:outline-none transition-colors disabled:opacity-50 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-[#C4A962] file:text-white hover:file:bg-[#9F874E]"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className={`w-full py-4 px-6 rounded source-sans-3-medium text-white bg-[#C4A962] hover:bg-[#9F874E] transition-colors relative ${
-                    isLoading ? 'opacity-80 cursor-not-allowed' : ''
-                  }`}
+                <label className="block text-[#C4A962] source-sans-3-medium mb-2">
+                  Categoría
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value as TattooCategory)}
+                  className="w-full px-4 py-2 rounded bg-black border border-[#C4A962]/20 text-white source-sans-3-regular focus:outline-none focus:border-[#C4A962]"
                 >
-                  {isLoading ? (
-                    <>
-                      <span className="opacity-0">Subir Imagen</span>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      </div>
-                    </>
-                  ) : (
-                    'Subir Imagen'
-                  )}
-                </button>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              {imageUpload.preview && (
-                <div>
-                  <p className="block source-sans-3-medium text-[#C4A962] mb-2">
-                    Vista Previa
-                  </p>
-                  <div className="relative aspect-square w-full overflow-hidden rounded-lg border border-[#C4A962]/20">
-                    <img 
-                      src={imageUpload.preview} 
-                      alt="Preview" 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
+              <div>
+                <label className="block text-[#C4A962] source-sans-3-medium mb-2">
+                  Título
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full px-4 py-2 rounded bg-black border border-[#C4A962]/20 text-white source-sans-3-regular focus:outline-none focus:border-[#C4A962]"
+                  placeholder="Nombre del tatuaje"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[#C4A962] source-sans-3-medium mb-2">
+                  Descripción (opcional)
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full px-4 py-2 rounded bg-black border border-[#C4A962]/20 text-white source-sans-3-regular focus:outline-none focus:border-[#C4A962]"
+                  placeholder="Describe el tatuaje"
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[#C4A962] source-sans-3-medium mb-2">
+                  Imagen
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="w-full px-4 py-2 rounded bg-black border border-[#C4A962]/20 text-white source-sans-3-regular focus:outline-none focus:border-[#C4A962]"
+                />
+              </div>
+
+              {uploadError && (
+                <div className="text-red-500 source-sans-3-regular">
+                  {uploadError}
                 </div>
               )}
-            </div>
-          </form>
 
-          {/* Image Gallery */}
-          <div className="bg-black/50 p-8 rounded-lg backdrop-blur-md border border-[#C4A962]/20">
-            <h2 className="text-2xl mb-6 source-sans-3-medium text-[#C4A962]">
-              Galería de Imágenes
+              <button
+                type="submit"
+                disabled={uploading}
+                className={`w-full py-3 rounded source-sans-3-medium text-black bg-[#C4A962] hover:bg-[#C4A962]/90 transition-colors ${
+                  uploading ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                {uploading ? 'Subiendo...' : 'Subir Tatuaje'}
+              </button>
+            </form>
+          </motion.div>
+
+          <div className="space-y-8">
+            <h2 className="text-3xl font-birthstone text-[#C4A962]">
+              Tatuajes Subidos
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {images.map(image => (
-                <div 
-                  key={image.id}
-                  className="relative group aspect-square overflow-hidden rounded-lg border border-[#C4A962]/20"
-                >
-                  <img 
-                    src={image.url} 
-                    alt={`Tatuaje ${image.category}`} 
-                    className="w-full h-full object-cover"
-                  />
-                  
-                  {/* Overlay with actions */}
-                  <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-4 p-4">
-                    {editingImage?.id === image.id ? (
-                      <>
-                        <select
-                          value={editingImage.category}
-                          onChange={(e) => handleUpdate(image.id, e.target.value as TattooCategory)}
-                          className="w-full p-2 rounded bg-black/50 text-white source-sans-3-regular border border-[#C4A962]/50 focus:border-[#C4A962] focus:outline-none"
-                        >
-                          <option value="realismo">Realismo</option>
-                          <option value="asiatico">Asiático</option>
-                          <option value="color">Color</option>
-                        </select>
-                        <button
-                          onClick={() => setEditingImage(null)}
-                          className="w-full py-2 px-4 rounded source-sans-3-medium text-white bg-gray-500 hover:bg-gray-600 transition-colors"
-                        >
-                          Cancelar
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-[#C4A962] source-sans-3-medium capitalize">
-                          {image.category}
+            {loading ? (
+              <div className="text-center text-gray-400 source-sans-3-regular">
+                Cargando tatuajes...
+              </div>
+            ) : error ? (
+              <div className="text-center text-red-500 source-sans-3-regular">
+                {error}
+              </div>
+            ) : tattoos.length === 0 ? (
+              <div className="text-center text-gray-400 source-sans-3-regular">
+                No hay tatuajes subidos
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {tattoos.map(tattoo => (
+                  <motion.div
+                    key={tattoo.id}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="group relative aspect-square overflow-hidden rounded-lg border-2 border-[#C4A962]"
+                  >
+                    <img
+                      src={tattoo.imageUrl}
+                      alt={tattoo.title}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-6">
+                      <div>
+                        <h3 className="text-xl text-[#C4A962] font-birthstone mb-2">
+                          {tattoo.title}
+                        </h3>
+                        <p className="text-gray-300 source-sans-3-regular text-sm mb-2">
+                          Categoría: {categories.find(cat => cat.id === tattoo.category)?.label}
                         </p>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleEdit(image)}
-                            className="py-2 px-4 rounded source-sans-3-medium text-white bg-[#C4A962] hover:bg-[#9F874E] transition-colors"
-                          >
-                            Editar
-                          </button>
-                          <button
-                            onClick={() => handleDelete(image.id)}
-                            className="py-2 px-4 rounded source-sans-3-medium text-white bg-red-500 hover:bg-red-600 transition-colors"
-                          >
-                            Eliminar
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {images.length === 0 && (
-              <p className="text-center text-white/60 source-sans-3-regular py-8">
-                No hay imágenes en la galería
-              </p>
+                        {tattoo.description && (
+                          <p className="text-gray-300 source-sans-3-regular text-sm">
+                            {tattoo.description}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => deleteTattoo(tattoo)}
+                        className="w-full py-2 rounded bg-red-600 hover:bg-red-700 text-white source-sans-3-medium transition-colors"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
             )}
           </div>
         </div>

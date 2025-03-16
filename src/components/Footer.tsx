@@ -1,4 +1,5 @@
 import { FaInstagram, FaWhatsapp } from 'react-icons/fa'
+import { SITE_TITLE } from '../config/constants'
 
 const Footer = () => {
   const currentYear = new Date().getFullYear()
@@ -7,7 +8,7 @@ const Footer = () => {
     <footer className="bg-black/85 backdrop-blur-md border-t border-[#C4A962]/20">
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-          <h2 className="font-birthstone text-4xl text-[#C4A962]">Denis Tatuajes</h2>
+          <h2 className="font-birthstone text-4xl text-[#C4A962]">{SITE_TITLE}</h2>
           
           <div className="flex items-center gap-6">
             <a 
@@ -31,7 +32,7 @@ const Footer = () => {
           </div>
 
           <p className="source-sans-3-regular text-[#C4A962]/80 text-sm">
-            © {currentYear} Denis Tatuajes. Todos los derechos reservados.
+            {currentYear} {SITE_TITLE}. Todos los derechos reservados.
           </p>
         </div>
       </div>

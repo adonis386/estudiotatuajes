@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useNavigationGuard } from '../hooks/useNavigationGuard'
 import { TattooCategory, TattooImage, addImage, getImages, deleteImage, updateImage } from '../utils/tempImages'
 
 const Admin = () => {
-  const { user } = useAuth()
+  const navigate = useNavigate()
+  const guardedNavigate = useNavigationGuard(navigate)
+  const { user, logout } = useAuth()
   const [images, setImages] = useState<TattooImage[]>([])
   const [imageUpload, setImageUpload] = useState<{
     file: File | null
@@ -118,12 +121,30 @@ const Admin = () => {
     }
   }
 
+  const handleLogout = async () => {
+    const success = await logout()
+    if (success) {
+      guardedNavigate('/login')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-black py-20">
       <div className="container mx-auto px-4">
-        <h1 className="text-5xl md:text-6xl text-center mb-12 font-birthstone text-[#C4A962]">
-          Panel de Administración
-        </h1>
+        <div className="flex justify-between items-center mb-12">
+          <h1 className="text-5xl md:text-6xl font-birthstone text-[#C4A962]">
+            Panel de Administración
+          </h1>
+          <button
+            onClick={handleLogout}
+            className="py-2 px-4 rounded source-sans-3-medium text-white bg-red-600 hover:bg-red-700 transition-colors flex items-center gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M3 3a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h5.5a1 1 0 1 0 0-2H4V5h4.5a1 1 0 0 0 0-2H3zm12.293 2.293a1 1 0 0 1 1.414 0l3 3a1 1 0 0 1 0 1.414l-3 3a1 1 0 0 1-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 0 1 0-1.414z" clipRule="evenodd"/>
+            </svg>
+            Cerrar Sesión
+          </button>
+        </div>
 
         <div className="max-w-4xl mx-auto">
           {/* Upload Form */}

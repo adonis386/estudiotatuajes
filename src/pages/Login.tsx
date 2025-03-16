@@ -1,20 +1,24 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useNavigationGuard } from '../hooks/useNavigationGuard'
+import Loading from '../components/Loading'
 
 const Login = () => {
   const navigate = useNavigate()
+  const guardedNavigate = useNavigationGuard(navigate)
   const { login, error, user } = useAuth()
+  const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   })
 
-  // Si el usuario ya está autenticado, redirigir al panel de admin
-  if (user) {
-    navigate('/admin')
-    return null
-  }
+  useEffect(() => {
+    if (user) {
+      guardedNavigate('/admin')
+    }
+  }, [user, guardedNavigate])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
@@ -25,10 +29,20 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const success = await login(formData.email, formData.password)
-    if (success) {
-      navigate('/admin')
+    setIsLoading(true)
+    try {
+      const success = await login(formData.email, formData.password)
+      if (success) {
+        guardedNavigate('/admin')
+      }
+    } finally {
+      setIsLoading(false)
     }
+  }
+
+  // Si el usuario está autenticado o se está cargando, mostrar pantalla de carga
+  if (user || isLoading) {
+    return <Loading />
   }
 
   return (
@@ -63,7 +77,8 @@ const Login = () => {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="w-full p-3 rounded bg-black/50 text-white source-sans-3-regular border border-[#C4A962]/50 focus:border-[#C4A962] focus:outline-none transition-colors"
+                disabled={isLoading}
+                className="w-full p-3 rounded bg-black/50 text-white source-sans-3-regular border border-[#C4A962]/50 focus:border-[#C4A962] focus:outline-none transition-colors disabled:opacity-50"
               />
             </div>
 
@@ -81,13 +96,15 @@ const Login = () => {
                 value={formData.password}
                 onChange={handleChange}
                 required
-                className="w-full p-3 rounded bg-black/50 text-white source-sans-3-regular border border-[#C4A962]/50 focus:border-[#C4A962] focus:outline-none transition-colors"
+                disabled={isLoading}
+                className="w-full p-3 rounded bg-black/50 text-white source-sans-3-regular border border-[#C4A962]/50 focus:border-[#C4A962] focus:outline-none transition-colors disabled:opacity-50"
               />
             </div>
 
             <button
               type="submit"
-              className="w-full py-4 px-6 rounded source-sans-3-medium text-white bg-[#C4A962] hover:bg-[#9F874E] transition-colors"
+              disabled={isLoading}
+              className="w-full py-4 px-6 rounded source-sans-3-medium text-white bg-[#C4A962] hover:bg-[#9F874E] transition-colors disabled:opacity-50 relative"
             >
               Iniciar Sesión
             </button>
